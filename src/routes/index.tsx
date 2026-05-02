@@ -19,7 +19,6 @@ import { SpeakButton } from "@/components/SpeakButton";
 import { Timeline } from "@/components/Timeline";
 import { useProgress } from "@/hooks/useProgress";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
-import { useStepDetails } from "@/hooks/useStepDetails";
 import { NEXT_ELECTION_DATE, STEPS } from "@/lib/election-data";
 
 export const Route = createFileRoute("/")({
@@ -48,17 +47,9 @@ function Index() {
   const [highContrast, setHighContrast] = useState(false);
   const [sessionNotice, setSessionNotice] = useState(false);
   const [mode, setMode] = useState<"classic" | "quest">("classic");
-  const stepDetails = useStepDetails();
 
   const onTimeout = useCallback(() => setSessionNotice(true), []);
   useSessionTimeout(15 * 60 * 1000, onTimeout);
-
-  // Fetch live India/ECI details when a step is opened.
-  useEffect(() => {
-    if (!expanded) return;
-    const step = STEPS.find((s) => s.id === expanded);
-    if (step) void stepDetails.load(step.id, step.title);
-  }, [expanded, stepDetails]);
 
   const toggleContrast = useCallback(() => {
     setHighContrast((v) => {
@@ -213,8 +204,6 @@ function Index() {
                 expandedId={expanded}
                 onToggleComplete={progress.toggle}
                 onExpand={setExpanded}
-                details={stepDetails.byId}
-                onRetry={stepDetails.retry}
               />
             </BentoCard>
 

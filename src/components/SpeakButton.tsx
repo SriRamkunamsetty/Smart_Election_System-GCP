@@ -10,6 +10,28 @@ type Props = {
   size?: "sm" | "md" | "lg";
 };
 
+export function stripMarkdown(md: string): string {
+  if (!md) return '';
+  return md
+    // Remove headers
+    .replace(/^#{1,6}\s+/gm, '')
+    // Remove bold/italic
+    .replace(/[_*]{1,3}(.*?)[_*]{1,3}/g, '$1')
+    // Remove links [text](url) -> text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove images ![alt](url) -> ""
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+    // Remove blockquotes, list items
+    .replace(/^[>*\-+]+\s+/gm, '')
+    // Remove inline code
+    .replace(/`([^`]+)`/g, '$1')
+    // Remove code blocks
+    .replace(/```[\s\S]*?```/g, '')
+    // Replace multiple spaces/newlines with single space
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /** Audio-first button: reads `text` aloud via the browser's speech synthesis. */
 export function SpeakButton({
   text,
@@ -49,7 +71,7 @@ export function SpeakButton({
           stopSpeaking();
           setSpeaking(false);
         } else {
-          speak(text);
+          speak(stripMarkdown(text));
           setSpeaking(true);
         }
       }}

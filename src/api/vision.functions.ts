@@ -28,8 +28,9 @@ Privacy rule: NEVER reveal or echo any personal numbers, names, addresses, photo
 export const checkIdPhoto = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => Input.parse(data))
   .handler(async ({ data }) => {
-    const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
-    if (!key) {
+    const rawKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
+    const key = rawKey?.trim();
+    if (!key || key === "undefined" || key === "null" || key.length < 10) {
       return {
         ok: false,
         doc: "unknown" as const,
@@ -46,7 +47,7 @@ export const checkIdPhoto = createServerFn({ method: "POST" })
     try {
       const ai = new GoogleGenAI({ apiKey: key });
       const res = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         config: {
           systemInstruction: SYSTEM,
           responseMimeType: "application/json",
@@ -96,7 +97,17 @@ export const checkIdPhoto = createServerFn({ method: "POST" })
         tips: Array.isArray(parsed.tips) ? parsed.tips.slice(0, 3).map(String) : [],
         error: null as string | null,
       };
-    } catch (e) {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message.includes("API key not valid")) {
+        return {
+          ok: false,
+          doc: "unknown" as const,
+          confidence: 0,
+          reason: "AI is not configured. Please check your API key.",
+          tips: [],
+          error: "no_key",
+        };
+      }
       console.error("vision exception", e);
       return {
         ok: false,

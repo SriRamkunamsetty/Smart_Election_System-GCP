@@ -34,10 +34,11 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
-        if (!key) {
-          return new Response(JSON.stringify({ error: "AI is not configured." }), {
-            status: 500,
+        const rawKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
+        const key = rawKey?.trim();
+        if (!key || key === "undefined" || key === "null" || key.length < 10) {
+          return new Response(JSON.stringify({ error: "AI is not configured. Please check your API key." }), {
+            status: 400,
             headers: { "Content-Type": "application/json" },
           });
         }
@@ -60,7 +61,7 @@ export const Route = createFileRoute("/api/chat")({
             : SYSTEM_PROMPT;
 
           const stream = await ai.models.generateContentStream({
-            model: "gemini-2.5-flash",
+            model: "gemini-3-flash-preview",
             config: { systemInstruction: dynamicSystemInstruction },
             contents: parsed.messages.map((m) => ({
               role: m.role === "assistant" ? "model" : "user",
@@ -109,7 +110,16 @@ export const Route = createFileRoute("/api/chat")({
               "Cache-Control": "no-cache, no-transform",
             },
           });
-        } catch (e) {
+        } catch (e: unknown) {
+          if (e instanceof Error && e.message.includes("API key not valid")) {
+            return new Response(
+              JSON.stringify({ error: "AI is not configured. Please check your API key." }),
+              {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+              },
+            );
+          }
           console.error("AI upstream error", e);
           return new Response(JSON.stringify({ error: "AI gateway error." }), {
             status: 500,

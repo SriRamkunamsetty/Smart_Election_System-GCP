@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getStepDetails } from "@/api/steps.functions";
 
 type Entry = {
@@ -7,67 +7,58 @@ type Entry = {
   error?: string;
 };
 
-export function useStepDetails() {
-  const [byId, setById] = useState<Record<string, Entry>>({});
-  // Track in-flight requests so a re-expand doesn't double-fire.
-  const inflight = useRef<Set<string>>(new Set());
+// Module-level cache to preserve fetched data across dismounts
+const cache = new Map<string, Entry>();
+const inflight = new Set<string>();
 
-  const load = useCallback(async (stepId: string, stepTitle: string) => {
-    if (inflight.current.has(stepId)) return;
+export function useStepDetails(stepId: string, stepTitle: string) {
+  const [entry, setEntry] = useState<Entry>(() => cache.get(stepId) || { status: "loading" });
 
-    let shouldBail = false;
-    setById((prev) => {
-      const existing = prev[stepId];
-      if (existing && (existing.status === "ready" || existing.status === "loading")) {
-        shouldBail = true;
-        return prev;
+  const load = useCallback(
+    async (force = false) => {
+      if (!force) {
+        const existing = cache.get(stepId);
+        if (existing && existing.status === "ready") {
+          setEntry(existing);
+          return;
+        }
       }
-      return { ...prev, [stepId]: { status: "loading" } };
-    });
 
-    if (shouldBail) return;
+      if (inflight.has(stepId)) return;
 
-    inflight.current.add(stepId);
+      inflight.add(stepId);
+      const loadingState: Entry = { status: "loading" };
+      setEntry(loadingState);
+      cache.set(stepId, loadingState);
 
-    try {
-      const res = await getStepDetails({ data: { stepId, stepTitle } });
-      if (res.error || !res.content) {
-        setById((prev) => ({
-          ...prev,
-          [stepId]: { status: "error", error: res.error ?? "No content." },
-        }));
-      } else {
-        setById((prev) => ({
-          ...prev,
-          [stepId]: { status: "ready", content: res.content },
-        }));
-      }
-    } catch (e) {
-      setById((prev) => ({
-        ...prev,
-        [stepId]: {
+      try {
+        const res = await getStepDetails({ data: { stepId, stepTitle } });
+        const newState: Entry =
+          res.error || !res.content
+            ? { status: "error", error: res.error ?? "No content." }
+            : { status: "ready", content: res.content };
+
+        cache.set(stepId, newState);
+        setEntry(newState);
+      } catch (e) {
+        const errorState: Entry = {
           status: "error",
           error: e instanceof Error ? e.message : "Request failed.",
-        },
-      }));
-    } finally {
-      inflight.current.delete(stepId);
-    }
-  }, []);
-
-  const retry = useCallback(
-    (stepId: string, stepTitle: string) => {
-      setById((prev) => {
-        const next = { ...prev };
-        delete next[stepId];
-        return next;
-      });
-      void load(stepId, stepTitle);
+        };
+        cache.set(stepId, errorState);
+        setEntry(errorState);
+      } finally {
+        inflight.delete(stepId);
+      }
     },
-    [load],
+    [stepId, stepTitle],
   );
 
-  return { byId, load, retry };
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  return { entry, retry: () => load(true) };
 }
 
 export type StepDetailsState = ReturnType<typeof useStepDetails>;

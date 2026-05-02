@@ -4,12 +4,6 @@ import { memo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Step } from "@/lib/election-data";
 
-type DetailsEntry = {
-  status: "idle" | "loading" | "ready" | "error";
-  content?: string;
-  error?: string;
-};
-
 interface Props {
   steps: Step[];
   completed: Set<string>;
@@ -17,8 +11,6 @@ interface Props {
   expandedId: string | null;
   onToggleComplete: (id: string) => void;
   onExpand: (id: string | null) => void;
-  details: Record<string, DetailsEntry>;
-  onRetry: (stepId: string, stepTitle: string) => void;
 }
 
 function TimelineImpl({
@@ -28,8 +20,6 @@ function TimelineImpl({
   expandedId,
   onToggleComplete,
   onExpand,
-  details,
-  onRetry,
 }: Props) {
   const handleExpand = useCallback(
     (id: string) => onExpand(expandedId === id ? null : id),
@@ -92,34 +82,36 @@ function TimelineImpl({
               </AnimatePresence>
             </button>
 
-            <motion.button
+            <motion.div
               layout
-              type="button"
-              onClick={() => handleExpand(step.id)}
               whileHover={{ scale: 1.01 }}
               transition={{ type: "spring", stiffness: 320, damping: 26 }}
-              className={`focusable group block w-full rounded-2xl border px-5 py-4 text-left transition-shadow ${
+              className={`group block w-full rounded-2xl border text-left transition-shadow overflow-hidden ${
                 isExpanded
                   ? "border-primary/30 bg-card shadow-[var(--shadow-elevated)]"
                   : "border-border/70 bg-card/70 hover:shadow-[var(--shadow-soft)]"
               }`}
-              aria-expanded={isExpanded}
             >
-              <motion.div layout className="flex items-baseline justify-between gap-3">
-                <h3
-                  className={`font-display text-base font-semibold leading-snug ${
-                    isDone ? "text-muted-foreground line-through decoration-1" : "text-foreground"
-                  }`}
-                >
-                  {step.title}
-                </h3>
-                <span className="shrink-0 text-[11px] uppercase tracking-wider text-muted-foreground">
-                  ~{step.estimatedMinutes} min
-                </span>
-              </motion.div>
-              <motion.p layout className="mt-1 text-sm text-muted-foreground">
-                {step.short}
-              </motion.p>
+              <button
+                type="button"
+                onClick={() => handleExpand(step.id)}
+                aria-expanded={isExpanded}
+                className="focusable block w-full px-5 py-4 text-left"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <h3
+                    className={`font-display text-base font-semibold leading-snug ${
+                      isDone ? "text-muted-foreground line-through decoration-1" : "text-foreground"
+                    }`}
+                  >
+                    {step.title}
+                  </h3>
+                  <span className="shrink-0 text-[11px] uppercase tracking-wider text-muted-foreground">
+                    ~{step.estimatedMinutes} min
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">{step.short}</p>
+              </button>
 
               <AnimatePresence initial={false}>
                 {isExpanded && (
@@ -131,15 +123,13 @@ function TimelineImpl({
                     transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                     className="overflow-hidden"
                   >
-                    <StepDetails
-                      step={step}
-                      entry={details[step.id]}
-                      onRetry={() => onRetry(step.id, step.title)}
-                    />
+                    <div className="px-5 pb-4">
+                      <StepDetails step={step} />
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.button>
+            </motion.div>
           </motion.li>
         );
       })}
@@ -149,15 +139,10 @@ function TimelineImpl({
 
 export const Timeline = memo(TimelineImpl);
 
-function StepDetails({
-  step,
-  entry,
-  onRetry,
-}: {
-  step: Step;
-  entry: DetailsEntry | undefined;
-  onRetry: () => void;
-}) {
+import { useStepDetails } from "@/hooks/useStepDetails";
+
+function StepDetails({ step }: { step: Step }) {
+  const { entry, retry } = useStepDetails(step.id, step.title);
   const status = entry?.status ?? "loading";
 
   return (
@@ -184,7 +169,7 @@ function StepDetails({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onRetry();
+                retry();
               }}
               className="focusable inline-flex items-center gap-1 rounded-full border border-destructive/40 bg-background px-2.5 py-1 font-medium text-destructive hover:bg-destructive/10"
             >

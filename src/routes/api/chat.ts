@@ -34,10 +34,11 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
-        if (!key) {
-          return new Response(JSON.stringify({ error: "AI is not configured." }), {
-            status: 500,
+        const rawKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
+        const key = rawKey?.trim();
+        if (!key || key === "undefined" || key === "null" || key.length < 10) {
+          return new Response(JSON.stringify({ error: "AI is not configured. Please check your API key." }), {
+            status: 400,
             headers: { "Content-Type": "application/json" },
           });
         }

@@ -26,8 +26,9 @@ Rules:
 export const getStepDetails = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => Input.parse(data))
   .handler(async ({ data }) => {
-    const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
-    if (!key) {
+    const rawKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
+    const key = rawKey?.trim();
+    if (!key || key === "undefined" || key === "null" || key.length < 10) {
       return { content: "", error: "AI is not configured." };
     }
 

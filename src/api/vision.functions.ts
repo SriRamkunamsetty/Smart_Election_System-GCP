@@ -132,6 +132,16 @@ export async function visionHandler({ data }: { data: z.infer<typeof Input> }) {
           error: "service_disabled",
         };
       }
+      if (errStr.includes("API_KEY_HTTP_REFERRER_BLOCKED")) {
+        return {
+          ok: false,
+          doc: "unknown" as const,
+          confidence: 0,
+          reason: "API Key is restricted by referrer. Please remove HTTP Referrer restrictions in GCP Console.",
+          tips: ["Go to APIs & Services > Credentials", "Select your API Key", "Set 'Website restrictions' to 'None'"],
+          error: "key_restricted",
+        };
+      }
       logger.error("vision exception", { component: "vision", error: errStr });
       return {
         ok: false,

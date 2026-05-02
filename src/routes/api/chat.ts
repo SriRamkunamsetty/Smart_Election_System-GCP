@@ -144,6 +144,15 @@ export const Route = createFileRoute("/api/chat")({
               },
             );
           }
+          if (errStr.includes("API_KEY_HTTP_REFERRER_BLOCKED")) {
+            return new Response(
+              JSON.stringify({ error: "API Key restricted by referrer. Remove HTTP Referrer restrictions in GCP Console." }),
+              {
+                status: 403,
+                headers: { "Content-Type": "application/json" },
+              },
+            );
+          }
           logger.error("AI upstream error", { component: "chat", error: errStr });
           return new Response(JSON.stringify({ error: "AI gateway error." }), {
             status: 500,

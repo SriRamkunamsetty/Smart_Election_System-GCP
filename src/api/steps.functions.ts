@@ -65,6 +65,9 @@ Give the Indian voter clear, practical, up-to-date guidance for this step: what 
       if (errStr.includes("SERVICE_DISABLED") || errStr.includes("disabled")) {
         return { content: "", error: "Gemini API is disabled. Please enable it in Google Cloud Console." };
       }
+      if (errStr.includes("API_KEY_HTTP_REFERRER_BLOCKED")) {
+        return { content: "", error: "API Key restricted by referrer. Please remove HTTP Referrer restrictions in GCP Console." };
+      }
       logger.error("step-details exception", {
         component: "steps",
         stepId: data.stepId,

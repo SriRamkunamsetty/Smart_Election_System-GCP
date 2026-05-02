@@ -60,7 +60,7 @@ export async function visionHandler({ data }: { data: z.infer<typeof Input> }) {
     try {
       const ai = new GoogleGenAI({ apiKey: key });
       const res = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-1.5-flash",
         config: {
           systemInstruction: SYSTEM,
           responseMimeType: "application/json",

@@ -51,7 +51,7 @@ Give the Indian voter clear, practical, up-to-date guidance for this step: what 
     try {
       const ai = new GoogleGenAI({ apiKey: key });
       const res = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-1.5-flash",
         config: { systemInstruction: SYSTEM },
         contents: userPrompt,
       });

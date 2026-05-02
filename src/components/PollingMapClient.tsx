@@ -1,87 +1,156 @@
-import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
+/**
+ * @module PollingMapClient
+ * Google Maps integration for the "Find your booth" feature.
+ * Uses the `@googlemaps/js-api-loader` to load the Maps JS SDK at runtime
+ * with the API key served from the secure server function `getMapsKey()`.
+ *
+ * Features:
+ *  - Geolocation via the browser's native API to center the map on the user.
+ *  - Custom markers for the user's location and a sample polling booth.
+ *  - Graceful fallback to New Delhi if geolocation is denied or unavailable.
+ */
+import { useEffect, useRef, useState } from "react";
+import { Loader } from "@googlemaps/js-api-loader";
 import { MapPin } from "lucide-react";
+import { getMapsKey } from "@/api/maps.functions";
 
-// @ts-expect-error - overriding leaflet default icon internals
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-});
+/** Default center: New Delhi, India */
+const DEFAULT_CENTER = { lat: 28.6139, lng: 77.209 };
+const DEFAULT_ZOOM = 13;
 
-function LocationMarker() {
-  const [position, setPosition] = useState<L.LatLng | null>(null);
-  const map = useMap();
+/**
+ * PollingMapClient — renders an interactive Google Map centered on the user's
+ * location (or New Delhi as fallback) with a sample polling booth marker.
+ */
+export function PollingMapClient() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [errorMsg, setErrorMsg] = useState<string>("");
 
   useEffect(() => {
-    const handleLocationFound = (e: L.LocationEvent) => {
-      setPosition(e.latlng);
-      map.flyTo(e.latlng, map.getZoom());
-    };
+    let cancelled = false;
 
-    map.locate().on("locationfound", handleLocationFound);
+    async function init() {
+      try {
+        // Fetch the API key securely from the server
+        const { key } = await getMapsKey();
+        if (!key) {
+          setErrorMsg("Google Maps API key is not configured.");
+          setStatus("error");
+          return;
+        }
+        if (cancelled) return;
+
+        // Load Google Maps SDK
+        const loader = new Loader({
+          apiKey: key,
+          version: "weekly",
+          libraries: ["marker"],
+        });
+
+        const { Map } = await loader.importLibrary("maps");
+        if (cancelled || !containerRef.current) return;
+
+        // Create the map
+        const map = new Map(containerRef.current, {
+          center: DEFAULT_CENTER,
+          zoom: DEFAULT_ZOOM,
+          mapId: "voting-oracle-map",
+          disableDefaultUI: false,
+          zoomControl: true,
+          streetViewControl: false,
+          fullscreenControl: true,
+          mapTypeControl: false,
+          gestureHandling: "cooperative",
+        });
+        mapRef.current = map;
+
+        // Add a sample polling booth marker at the default center
+        new google.maps.Marker({
+          position: DEFAULT_CENTER,
+          map,
+          title: "Sample polling booth",
+          icon: {
+            url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+          },
+        });
+
+        setStatus("ready");
+
+        // Try to get user's real location
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              if (cancelled) return;
+              const userPos = {
+                lat: pos.coords.latitude,
+                lng: pos.coords.longitude,
+              };
+              map.panTo(userPos);
+              map.setZoom(14);
+
+              // Add user location marker
+              new google.maps.Marker({
+                position: userPos,
+                map,
+                title: "You are here",
+                icon: {
+                  url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+                },
+              });
+            },
+            () => {
+              // Geolocation denied or unavailable — keep the default center
+            },
+            { enableHighAccuracy: false, timeout: 8000 },
+          );
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error("[PollingMapClient] Failed to load Google Maps:", err);
+          setErrorMsg("Could not load Google Maps.");
+          setStatus("error");
+        }
+      }
+    }
+
+    void init();
 
     return () => {
-      map.off("locationfound", handleLocationFound);
+      cancelled = true;
     };
-  }, [map]);
-
-  return position === null ? null : (
-    <Marker position={position}>
-      <Popup>You are here</Popup>
-    </Marker>
-  );
-}
-
-export function PollingMapClient() {
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Simulate loading delay to prevent blocking initial render
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 500);
-
-    return () => clearTimeout(timer);
   }, []);
 
-  if (loading) {
+  if (status === "error") {
     return (
       <div className="relative h-full w-full overflow-hidden rounded-2xl bg-muted">
         <div className="absolute inset-0 grid place-items-center bg-muted/60 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            Loading map…
+          <div className="flex flex-col items-center gap-2 text-center px-4">
+            <MapPin className="h-5 w-5 opacity-60" />
+            <span>{errorMsg || "Map unavailable"}</span>
           </div>
         </div>
       </div>
     );
   }
 
-  // Default to New Delhi
-  const center: L.LatLngTuple = [28.6139, 77.209];
-
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-2xl z-0">
-      <MapContainer
-        center={center}
-        zoom={12}
-        scrollWheelZoom={false}
-        style={{ height: "100%", width: "100%", zIndex: 0 }}
-        className="z-0"
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-        />
-        <Marker position={center}>
-          <Popup>Sample polling area</Popup>
-        </Marker>
-        <LocationMarker />
-      </MapContainer>
+    <div className="relative h-full w-full overflow-hidden rounded-2xl">
+      {status === "loading" && (
+        <div className="absolute inset-0 z-10 grid place-items-center bg-muted/60 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 animate-pulse" />
+            Loading Google Maps…
+          </div>
+        </div>
+      )}
+      <div
+        ref={containerRef}
+        className="h-full w-full"
+        aria-label="Interactive Google Map showing your polling booth location"
+        role="application"
+      />
     </div>
   );
 }

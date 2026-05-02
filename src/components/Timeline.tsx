@@ -1,8 +1,15 @@
+/**
+ * @module Timeline
+ * Interactive step-by-step timeline component for the voting guide.
+ * Each step can be expanded to show AI-generated guidance from the Oracle.
+ * Supports completion tracking with animated state transitions.
+ */
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, RefreshCw, Sparkles } from "lucide-react";
 import { memo, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import type { Step } from "@/lib/election-data";
+import { useStepDetails } from "@/hooks/useStepDetails";
 
 interface Props {
   steps: Step[];
@@ -138,8 +145,6 @@ function TimelineImpl({
 }
 
 export const Timeline = memo(TimelineImpl);
-
-import { useStepDetails } from "@/hooks/useStepDetails";
 
 function StepDetails({ step }: { step: Step }) {
   const { entry, retry } = useStepDetails(step.id, step.title);

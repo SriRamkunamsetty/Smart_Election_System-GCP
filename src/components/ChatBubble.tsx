@@ -311,6 +311,7 @@ function ChatBubbleImpl({ context }: { context?: ChatContext }) {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask the Oracle…"
                 aria-label="Message the Voting Oracle"
+                maxLength={4000}
                 className="focusable flex-1 rounded-full border border-border bg-background/80 px-4 py-2 text-sm text-foreground placeholder:text-muted-foreground"
                 disabled={busy}
               />

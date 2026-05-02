@@ -11,12 +11,9 @@
  */
 
 @theme inline {
-  --font-sans:
-    "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui,
-    sans-serif;
+  --font-sans: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-display:
-    "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui,
-    sans-serif;
+    "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 2px);
@@ -50,35 +47,18 @@
   --color-glass: var(--glass);
   --color-glass-border: var(--glass-border);
 
-  --shadow-soft: 0 1px 2px oklch(0.2 0.02 260 / 0.04),
-    0 8px 24px -6px oklch(0.2 0.02 260 / 0.08);
-  --shadow-elevated: 0 4px 12px oklch(0.2 0.02 260 / 0.06),
-    0 24px 48px -12px oklch(0.2 0.02 260 / 0.18);
-  --shadow-glow: 0 0 0 1px oklch(0.55 0.18 258 / 0.18),
-    0 12px 32px -8px oklch(0.55 0.18 258 / 0.35);
+  --shadow-soft: 0 1px 2px oklch(0.2 0.02 260 / 0.04), 0 8px 24px -6px oklch(0.2 0.02 260 / 0.08);
+  --shadow-elevated:
+    0 4px 12px oklch(0.2 0.02 260 / 0.06), 0 24px 48px -12px oklch(0.2 0.02 260 / 0.18);
+  --shadow-glow:
+    0 0 0 1px oklch(0.55 0.18 258 / 0.18), 0 12px 32px -8px oklch(0.55 0.18 258 / 0.35);
 
   --gradient-bg:
-    radial-gradient(
-        1200px 600px at 10% 0%,
-        oklch(0.96 0.04 258 / 0.7),
-        transparent 60%
-      ),
-    radial-gradient(
-        900px 500px at 90% 10%,
-        oklch(0.94 0.06 290 / 0.55),
-        transparent 60%
-      ),
-    radial-gradient(
-        1000px 700px at 50% 100%,
-        oklch(0.96 0.05 80 / 0.5),
-        transparent 60%
-      ),
+    radial-gradient(1200px 600px at 10% 0%, oklch(0.96 0.04 258 / 0.7), transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, oklch(0.94 0.06 290 / 0.55), transparent 60%),
+    radial-gradient(1000px 700px at 50% 100%, oklch(0.96 0.05 80 / 0.5), transparent 60%),
     linear-gradient(180deg, #fbfbfd 0%, #f0f4f8 100%);
-  --gradient-primary: linear-gradient(
-    135deg,
-    var(--primary) 0%,
-    var(--primary-glow) 100%
-  );
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-glow) 100%);
   --gradient-tricolor: linear-gradient(
     135deg,
     var(--saffron) 0%,

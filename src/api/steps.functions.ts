@@ -1,6 +1,15 @@
+/**
+ * @module api/steps
+ * Server function that generates dynamic, AI-powered guidance for each step
+ * of the voting journey using Google Gemini.
+ *
+ * Called by the `useStepDetails` hook when a user expands a timeline step.
+ * Results are cached client-side to avoid redundant requests.
+ */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
+import * as logger from "@/lib/logger";
 
 const Input = z.object({
   stepId: z
@@ -49,7 +58,11 @@ Give the Indian voter clear, practical, up-to-date guidance for this step: what 
       if (e instanceof Error && e.message.includes("API key not valid")) {
         return { content: "", error: "AI is not configured. Please check your API key." };
       }
-      console.error("step-details exception", e);
+      logger.error("step-details exception", {
+        component: "steps",
+        stepId: data.stepId,
+        error: String(e),
+      });
       return { content: "", error: "Could not reach the Oracle." };
     }
   });

@@ -1,6 +1,15 @@
+/**
+ * @module __root
+ * Root layout for the application.
+ * Integrates Google Analytics (GA4), security headers (CSP),
+ * and the application shell including fonts and global styles.
+ */
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+
+/** Google Analytics Measurement ID. Set via environment or hardcode for the deployment. */
+const GA_MEASUREMENT_ID = "G-XXXXXXXXXX";
 
 function NotFoundComponent() {
   return (
@@ -60,11 +69,22 @@ export const Route = createRootRoute({
       { name: "author", content: "The Voting Oracle" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      {
+        httpEquiv: "Content-Security-Policy",
+        content:
+          "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://maps.googleapis.com; style-src 'self' 'unsafe-inline' https://rsms.me https://fonts.googleapis.com; img-src 'self' data: blob: https://*.googleapis.com https://*.gstatic.com https://maps.google.com https://cdnjs.cloudflare.com; connect-src 'self' https://*.googleapis.com https://*.google-analytics.com https://www.google-analytics.com https://analytics.google.com; font-src 'self' https://rsms.me https://fonts.gstatic.com; frame-src https://www.google.com https://maps.google.com;",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://rsms.me/" },
       { rel: "stylesheet", href: "https://rsms.me/inter/inter.css" },
+    ],
+    scripts: [
+      {
+        src: `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`,
+        async: true,
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -82,6 +102,20 @@ function RootShell({ children }: { children: React.ReactNode }) {
       <body>
         {children}
         <Scripts />
+        {/* Google Analytics initialization */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${GA_MEASUREMENT_ID}', {
+                page_title: document.title,
+                send_page_view: true,
+              });
+            `,
+          }}
+        />
       </body>
     </html>
   );

@@ -1,6 +1,16 @@
+/**
+ * @module api/vision
+ * Server function that uses Gemini's vision capabilities to verify
+ * Indian voter ID documents (Aadhaar, EPIC, Passport, DL, PAN).
+ *
+ * Privacy:
+ *  - Images are sent directly to Gemini and never stored.
+ *  - The AI is instructed to never echo personal data.
+ */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
+import * as logger from "@/lib/logger";
 
 const Input = z.object({
   // data URL or base64 of the image
@@ -108,7 +118,7 @@ export const checkIdPhoto = createServerFn({ method: "POST" })
           error: "no_key",
         };
       }
-      console.error("vision exception", e);
+      logger.error("vision exception", { component: "vision", error: String(e) });
       return {
         ok: false,
         doc: "unknown" as const,

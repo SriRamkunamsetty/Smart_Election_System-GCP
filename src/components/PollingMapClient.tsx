@@ -10,7 +10,7 @@
  *  - Graceful fallback to New Delhi if geolocation is denied or unavailable.
  */
 import { useEffect, useRef, useState } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
+import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import { MapPin } from "lucide-react";
 import { getMapsKey } from "@/api/maps.functions";
 
@@ -42,14 +42,18 @@ export function PollingMapClient() {
         }
         if (cancelled) return;
 
-        // Load Google Maps SDK
-        const loader = new Loader({
+        // Configure the loader with the API key
+        setOptions({
           apiKey: key,
           version: "weekly",
-          libraries: ["marker"],
         });
 
-        const { Map } = await loader.importLibrary("maps");
+        // Load Google Maps SDK libraries
+        const { Map } = (await importLibrary("maps")) as google.maps.MapsLibrary;
+        const { AdvancedMarkerElement } = (await importLibrary(
+          "marker",
+        )) as google.maps.MarkerLibrary;
+
         if (cancelled || !containerRef.current) return;
 
         // Create the map
@@ -67,13 +71,10 @@ export function PollingMapClient() {
         mapRef.current = map;
 
         // Add a sample polling booth marker at the default center
-        new google.maps.Marker({
+        new AdvancedMarkerElement({
           position: DEFAULT_CENTER,
           map,
           title: "Sample polling booth",
-          icon: {
-            url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-          },
         });
 
         setStatus("ready");
@@ -91,13 +92,10 @@ export function PollingMapClient() {
               map.setZoom(14);
 
               // Add user location marker
-              new google.maps.Marker({
+              new AdvancedMarkerElement({
                 position: userPos,
                 map,
                 title: "You are here",
-                icon: {
-                  url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
-                },
               });
             },
             () => {

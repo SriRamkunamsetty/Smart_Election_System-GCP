@@ -34,8 +34,11 @@ Rules:
 
 export const getStepDetails = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => Input.parse(data))
-  .handler(async ({ data }) => {
-    const rawKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
+  .handler(stepsHandler);
+
+/** Core logic for getStepDetails, separated for testing. */
+export async function stepsHandler({ data }: { data: z.infer<typeof Input> }) {
+  const rawKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
     const key = rawKey?.trim();
     if (!key || key === "undefined" || key === "null" || key.length < 10) {
       return { content: "", error: "AI is not configured." };
@@ -65,4 +68,4 @@ Give the Indian voter clear, practical, up-to-date guidance for this step: what 
       });
       return { content: "", error: "Could not reach the Oracle." };
     }
-  });
+  }

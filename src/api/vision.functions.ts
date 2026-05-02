@@ -37,8 +37,11 @@ Privacy rule: NEVER reveal or echo any personal numbers, names, addresses, photo
 
 export const checkIdPhoto = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => Input.parse(data))
-  .handler(async ({ data }) => {
-    const rawKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
+  .handler(visionHandler);
+
+/** Core logic for checkIdPhoto, separated for testing. */
+export async function visionHandler({ data }: { data: z.infer<typeof Input> }) {
+  const rawKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
     const key = rawKey?.trim();
     if (!key || key === "undefined" || key === "null" || key.length < 10) {
       return {
@@ -128,4 +131,4 @@ export const checkIdPhoto = createServerFn({ method: "POST" })
         error: "network",
       };
     }
-  });
+  }

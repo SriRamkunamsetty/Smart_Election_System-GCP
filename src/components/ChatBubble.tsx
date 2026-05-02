@@ -16,11 +16,13 @@ async function streamChat(
   history: Msg[],
   onDelta: (chunk: string) => void,
   systemContext?: string,
+  signal?: AbortSignal,
 ): Promise<void> {
   const resp = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ messages: history, context: systemContext }),
+    signal,
   });
   if (!resp.ok || !resp.body) {
     let msg = "Something went wrong.";
@@ -72,6 +74,7 @@ function ChatBubbleImpl({ context }: { context?: ChatContext }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -79,6 +82,19 @@ function ChatBubbleImpl({ context }: { context?: ChatContext }) {
       behavior: "smooth",
     });
   }, [messages, busy]);
+
+  const stopStreaming = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
+
+  // Cleanup on unmount or close
+  useEffect(() => {
+    if (!open) stopStreaming();
+    return stopStreaming;
+  }, [open, stopStreaming]);
 
   const send = useCallback(
     async (text: string) => {
@@ -89,11 +105,16 @@ function ChatBubbleImpl({ context }: { context?: ChatContext }) {
       setMessages(next);
       setInput("");
       setBusy(true);
+
+      stopStreaming();
+      const ac = new AbortController();
+      abortControllerRef.current = ac;
+
       let acc = "";
-      
+
       let systemContext = undefined;
       if (context) {
-        systemContext = `User is currently in ${context.mode || 'classic'} mode.`;
+        systemContext = `User is currently in ${context.mode || "classic"} mode.`;
         if (context.expandedStep) {
           systemContext += ` They are looking at the step: "${context.expandedStep}".`;
         }
@@ -103,25 +124,33 @@ function ChatBubbleImpl({ context }: { context?: ChatContext }) {
       }
 
       try {
-        await streamChat(next, (chunk) => {
-          acc += chunk;
-          setMessages((prev) => {
-            const last = prev[prev.length - 1];
-            if (last?.role === "assistant") {
-              return prev.map((m, i) =>
-                i === prev.length - 1 ? { ...m, content: acc } : m,
-              );
-            }
-            return [...prev, { role: "assistant", content: acc }];
-          });
-        }, systemContext);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to reach the Oracle.");
+        await streamChat(
+          next,
+          (chunk) => {
+            acc += chunk;
+            setMessages((prev) => {
+              const last = prev[prev.length - 1];
+              if (last?.role === "assistant") {
+                return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: acc } : m));
+              }
+              return [...prev, { role: "assistant", content: acc }];
+            });
+          },
+          systemContext,
+          ac.signal,
+        );
+      } catch (e: unknown) {
+        const isAbort = e instanceof Error && e.name === "AbortError";
+        if (!isAbort) {
+          setError(e instanceof Error ? e.message : "Failed to reach the Oracle.");
+        }
       } finally {
-        setBusy(false);
+        if (abortControllerRef.current === ac) {
+          setBusy(false);
+        }
       }
     },
-    [busy, messages, context],
+    [busy, messages, context, stopStreaming],
   );
 
   return (
@@ -136,16 +165,29 @@ function ChatBubbleImpl({ context }: { context?: ChatContext }) {
       >
         <AnimatePresence mode="wait" initial={false}>
           {open ? (
-            <motion.span key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.span
+              key="x"
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
               <X className="h-5 w-5" />
             </motion.span>
           ) : (
-            <motion.span key="m" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.span
+              key="m"
+              initial={{ rotate: 90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
               <MessageCircle className="h-5 w-5" />
             </motion.span>
           )}
         </AnimatePresence>
-        <span aria-hidden className="absolute inset-0 -z-10 rounded-full opacity-60 gemini-pulse blur-md" />
+        <span
+          aria-hidden
+          className="absolute inset-0 -z-10 rounded-full opacity-60 gemini-pulse blur-md"
+        />
       </motion.button>
 
       <AnimatePresence>
@@ -163,7 +205,12 @@ function ChatBubbleImpl({ context }: { context?: ChatContext }) {
             <header className="flex items-center gap-3 border-b border-glass-border px-4 py-3">
               <div className="relative grid h-9 w-9 place-items-center rounded-full bg-card">
                 <Sparkles className="h-4 w-4 text-primary" />
-                {busy && <span aria-hidden className="absolute inset-0 rounded-full gemini-pulse opacity-70 blur-sm" />}
+                {busy && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 rounded-full gemini-pulse opacity-70 blur-sm"
+                  />
+                )}
               </div>
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-foreground">The Voting Oracle</div>
@@ -177,7 +224,8 @@ function ChatBubbleImpl({ context }: { context?: ChatContext }) {
               {messages.length === 0 && (
                 <div className="space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Ask anything about voting in India — registration, your booth, what to carry on polling day.
+                    Ask anything about voting in India — registration, your booth, what to carry on
+                    polling day.
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {SUGGESTIONS.map((s) => (
@@ -211,7 +259,15 @@ function ChatBubbleImpl({ context }: { context?: ChatContext }) {
                     {m.role === "assistant" ? (
                       <div className="relative pr-8">
                         <div className="prose prose-sm max-w-none [&_a]:text-primary [&_p]:my-1 [&_ul]:my-1 [&_strong]:text-foreground">
-                          <ReactMarkdown>{m.content || "…"}</ReactMarkdown>
+                          <ReactMarkdown
+                            components={{
+                              a: ({ node, ...props }) => (
+                                <a target="_blank" rel="noopener noreferrer" {...props} />
+                              ),
+                            }}
+                          >
+                            {m.content || "…"}
+                          </ReactMarkdown>
                         </div>
                         {m.content && !busy && i === messages.length - 1 ? (
                           <div className="absolute top-0 right-0 -mr-2 -mt-1">

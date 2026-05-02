@@ -6,14 +6,21 @@ function ctx(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (_ctx) return _ctx;
   const Ctor = (window.AudioContext ||
-    (window as unknown as { webkitAudioContext?: typeof AudioContext })
-      .webkitAudioContext) as typeof AudioContext | undefined;
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext) as
+    | typeof AudioContext
+    | undefined;
   if (!Ctor) return null;
   _ctx = new Ctor();
   return _ctx;
 }
 
-function tone(freq: number, start: number, duration: number, type: OscillatorType = "sine", gain = 0.18) {
+function tone(
+  freq: number,
+  start: number,
+  duration: number,
+  type: OscillatorType = "sine",
+  gain = 0.18,
+) {
   const ac = ctx();
   if (!ac) return;
   const t0 = ac.currentTime + start;

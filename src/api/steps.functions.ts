@@ -3,7 +3,11 @@ import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 
 const Input = z.object({
-  stepId: z.string().min(1).max(64).regex(/^[a-z0-9_-]+$/),
+  stepId: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z0-9_-]+$/),
   stepTitle: z.string().min(1).max(200),
 });
 

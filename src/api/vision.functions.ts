@@ -5,7 +5,9 @@ import { GoogleGenAI } from "@google/genai";
 const Input = z.object({
   // data URL or base64 of the image
   image: z.string().min(64).max(8_000_000),
-  docHint: z.enum(["aadhaar", "voter_id", "passport", "driving_licence", "pan", "any"]).default("any"),
+  docHint: z
+    .enum(["aadhaar", "voter_id", "passport", "driving_licence", "pan", "any"])
+    .default("any"),
 });
 
 const SYSTEM = `You are a non-partisan visual checker for Indian voter ID documents.
@@ -46,12 +48,14 @@ export const checkIdPhoto = createServerFn({ method: "POST" })
       const res = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         config: {
-            systemInstruction: SYSTEM,
-            responseMimeType: "application/json"
+          systemInstruction: SYSTEM,
+          responseMimeType: "application/json",
         },
         contents: [
-            { text: `User said the document is: ${docHint}. Judge the photo and reply with JSON only.` },
-            { inlineData: { mimeType: "image/jpeg", data: base64Str } }
+          {
+            text: `User said the document is: ${docHint}. Judge the photo and reply with JSON only.`,
+          },
+          { inlineData: { mimeType: "image/jpeg", data: base64Str } },
         ],
       });
 
@@ -69,7 +73,14 @@ export const checkIdPhoto = createServerFn({ method: "POST" })
         parsed = {};
       }
 
-      const allowedDocs = ["aadhaar", "voter_id", "passport", "driving_licence", "pan", "unknown"] as const;
+      const allowedDocs = [
+        "aadhaar",
+        "voter_id",
+        "passport",
+        "driving_licence",
+        "pan",
+        "unknown",
+      ] as const;
       const docVal = (allowedDocs as readonly string[]).includes(parsed.doc ?? "")
         ? (parsed.doc as (typeof allowedDocs)[number])
         : "unknown";
@@ -77,8 +88,11 @@ export const checkIdPhoto = createServerFn({ method: "POST" })
       return {
         ok: !!parsed.ok,
         doc: docVal,
-        confidence: typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0,
-        reason: parsed.reason || (parsed.ok ? "Looks like a valid ID." : "Could not verify the document."),
+        confidence:
+          typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0,
+        reason:
+          parsed.reason ||
+          (parsed.ok ? "Looks like a valid ID." : "Could not verify the document."),
         tips: Array.isArray(parsed.tips) ? parsed.tips.slice(0, 3).map(String) : [],
         error: null as string | null,
       };

@@ -1,7 +1,15 @@
 import { motion } from "framer-motion";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Accessibility, ArrowRight, Eye, Gamepad2, LayoutDashboard, RotateCcw, Vote } from "lucide-react";
+import {
+  Accessibility,
+  ArrowRight,
+  Eye,
+  Gamepad2,
+  LayoutDashboard,
+  RotateCcw,
+  Vote,
+} from "lucide-react";
 import { ChatBubble } from "@/components/ChatBubble";
 import { Countdown } from "@/components/Countdown";
 import { PollingMap } from "@/components/PollingMap";
@@ -68,6 +76,15 @@ function Index() {
     setExpanded(nextStep.id);
     document.getElementById(`step-anchor`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [nextStep]);
+
+  const chatContext = useMemo(
+    () => ({
+      mode,
+      expandedStep: expanded,
+      progressRatio: progress.ratio,
+    }),
+    [mode, expanded, progress.ratio],
+  );
 
   return (
     <main id="main" className="mx-auto max-w-6xl px-4 pb-32 pt-8 sm:px-6 sm:pt-12">
@@ -175,7 +192,9 @@ function Index() {
             <BentoCard className="md:col-span-1">
               <Eyebrow>Did you know</Eyebrow>
               <p className="mt-3 text-sm leading-relaxed text-foreground/85">
-                India's electorate is the world's largest — over <span className="font-semibold text-foreground">960 million</span> registered voters in 2024.
+                India's electorate is the world's largest — over{" "}
+                <span className="font-semibold text-foreground">960 million</span> registered voters
+                in 2024.
               </p>
             </BentoCard>
           </section>
@@ -201,7 +220,9 @@ function Index() {
 
             <BentoCard className="md:col-span-2 !p-0 overflow-hidden">
               <div className="flex items-baseline justify-between p-5 pb-3">
-                <h2 className="font-display text-xl font-semibold text-foreground">Find your booth</h2>
+                <h2 className="font-display text-xl font-semibold text-foreground">
+                  Find your booth
+                </h2>
                 <span className="text-xs text-muted-foreground">Approximate</span>
               </div>
               <div className="h-[420px] px-3 pb-3">
@@ -212,7 +233,7 @@ function Index() {
         </>
       )}
 
-      <ChatBubble context={{ mode, expandedStep: expanded, progressRatio: progress.ratio }} />
+      <ChatBubble context={chatContext} />
     </main>
   );
 }
@@ -233,10 +254,15 @@ function Header({
       <div className="flex items-center gap-2.5">
         <div className="relative grid h-9 w-9 place-items-center rounded-2xl bg-card luminescent">
           <Vote className="h-4 w-4 text-primary" />
-          <span aria-hidden className="absolute -inset-1 -z-10 rounded-3xl opacity-50 gemini-pulse blur-md" />
+          <span
+            aria-hidden
+            className="absolute -inset-1 -z-10 rounded-3xl opacity-50 gemini-pulse blur-md"
+          />
         </div>
         <div className="leading-tight">
-          <div className="font-display text-sm font-semibold tracking-tight text-foreground">The Voting Oracle</div>
+          <div className="font-display text-sm font-semibold tracking-tight text-foreground">
+            The Voting Oracle
+          </div>
           <div className="text-[11px] text-muted-foreground">India election guide</div>
         </div>
       </div>
@@ -252,7 +278,9 @@ function Header({
             aria-selected={mode === "classic"}
             onClick={() => onModeChange("classic")}
             className={`focusable inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-colors ${
-              mode === "classic" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              mode === "classic"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <LayoutDashboard className="h-3.5 w-3.5" /> Classic
@@ -262,7 +290,9 @@ function Header({
             aria-selected={mode === "quest"}
             onClick={() => onModeChange("quest")}
             className={`focusable inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-colors ${
-              mode === "quest" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              mode === "quest"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <Gamepad2 className="h-3.5 w-3.5" /> Quest
@@ -274,7 +304,11 @@ function Header({
           aria-pressed={highContrast}
           className="focusable inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
         >
-          {highContrast ? <Eye className="h-3.5 w-3.5" /> : <Accessibility className="h-3.5 w-3.5" />}
+          {highContrast ? (
+            <Eye className="h-3.5 w-3.5" />
+          ) : (
+            <Accessibility className="h-3.5 w-3.5" />
+          )}
           {highContrast ? "Standard" : "High contrast"}
         </button>
       </div>
@@ -302,7 +336,8 @@ function Hero() {
         transition={{ delay: 0.1, duration: 0.6 }}
         className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg"
       >
-        A calm, step-by-step guide to the Indian election process — from voter registration to polling day. Ask the Oracle anything along the way.
+        A calm, step-by-step guide to the Indian election process — from voter registration to
+        polling day. Ask the Oracle anything along the way.
       </motion.p>
     </section>
   );

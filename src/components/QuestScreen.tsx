@@ -29,8 +29,7 @@ const STATION_INTRO: Record<string, string> = {
     "Station 4. Pack your documents. Drag the right cards into the voting box. Aadhaar, Voter ID, Passport, and Driving Licence are accepted. Other cards are not.",
   booth:
     "Station 5. Find your polling booth. Your booth is decided by your part number in the electoral roll. Switch to Classic mode to see it on the map.",
-  vote:
-    "Station 6. Vote! Press the blue button next to your candidate. Watch the VVPAT slip for seven seconds. Then check the indelible ink mark on your finger.",
+  vote: "Station 6. Vote! Press the blue button next to your candidate. Watch the VVPAT slip for seven seconds. Then check the indelible ink mark on your finger.",
 };
 
 export function QuestScreen() {
@@ -101,17 +100,25 @@ export function QuestScreen() {
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-3xl" aria-hidden>
+              <div
+                className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-3xl"
+                aria-hidden
+              >
                 {station.emoji}
               </div>
               <div>
                 <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                   Station {STATIONS.findIndex((s) => s.id === station.id) + 1} of {STATIONS.length}
                 </div>
-                <h3 className="font-display text-xl font-semibold text-foreground">{station.title}</h3>
+                <h3 className="font-display text-xl font-semibold text-foreground">
+                  {station.title}
+                </h3>
               </div>
             </div>
-            <SpeakButton text={STATION_INTRO[station.id] ?? station.title} label="Read this station aloud" />
+            <SpeakButton
+              text={STATION_INTRO[station.id] ?? station.title}
+              label="Read this station aloud"
+            />
           </div>
 
           <div className="mt-5">
@@ -161,7 +168,11 @@ function StationContent({ id }: { id: string }) {
         <BigVisual
           icon="🇮🇳"
           headline="Citizen of India + 18 years or older"
-          bullets={["Indian citizen", "At least 18 on the qualifying date", "Living in your constituency"]}
+          bullets={[
+            "Indian citizen",
+            "At least 18 on the qualifying date",
+            "Living in your constituency",
+          ]}
         />
       );
     case "register":
@@ -204,7 +215,10 @@ function BigVisual({
 }) {
   return (
     <div className="grid grid-cols-1 items-center gap-4 sm:grid-cols-[auto,1fr] sm:gap-6">
-      <div className="grid h-32 w-32 place-items-center rounded-[32px] bg-gradient-to-br from-accent to-card text-7xl luminescent" aria-hidden>
+      <div
+        className="grid h-32 w-32 place-items-center rounded-[32px] bg-gradient-to-br from-accent to-card text-7xl luminescent"
+        aria-hidden
+      >
         {icon}
       </div>
       <div>
@@ -212,7 +226,10 @@ function BigVisual({
         <ul className="mt-3 space-y-2">
           {bullets.map((b) => (
             <li key={b} className="flex items-start gap-2 text-sm text-foreground/85">
-              <span className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden />
+              <span
+                className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full bg-primary"
+                aria-hidden
+              />
               {b}
             </li>
           ))}

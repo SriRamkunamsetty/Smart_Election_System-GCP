@@ -4,8 +4,8 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { MapPin } from "lucide-react";
 
-// Fix for default marker icons in react-leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+// @ts-expect-error - overriding leaflet default icon internals
+delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
   iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
@@ -17,10 +17,16 @@ function LocationMarker() {
   const map = useMap();
 
   useEffect(() => {
-    map.locate().on("locationfound", function (e) {
+    const handleLocationFound = (e: L.LocationEvent) => {
       setPosition(e.latlng);
       map.flyTo(e.latlng, map.getZoom());
-    });
+    };
+
+    map.locate().on("locationfound", handleLocationFound);
+
+    return () => {
+      map.off("locationfound", handleLocationFound);
+    };
   }, [map]);
 
   return position === null ? null : (
@@ -34,25 +40,25 @@ export function PollingMapClient() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-     // Simulate loading delay to prevent blocking initial render
-     const timer = setTimeout(() => {
-          setLoading(false);
-      }, 500);
+    // Simulate loading delay to prevent blocking initial render
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
 
-      return () => clearTimeout(timer);
+    return () => clearTimeout(timer);
   }, []);
 
   if (loading) {
-     return (
-        <div className="relative h-full w-full overflow-hidden rounded-2xl bg-muted">
-           <div className="absolute inset-0 grid place-items-center bg-muted/60 text-sm text-muted-foreground">
-             <div className="flex items-center gap-2">
-               <MapPin className="h-4 w-4" />
-               Loading map…
-             </div>
-           </div>
+    return (
+      <div className="relative h-full w-full overflow-hidden rounded-2xl bg-muted">
+        <div className="absolute inset-0 grid place-items-center bg-muted/60 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            Loading map…
+          </div>
         </div>
-      );
+      </div>
+    );
   }
 
   // Default to New Delhi
@@ -60,24 +66,22 @@ export function PollingMapClient() {
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-2xl z-0">
-         <MapContainer
-            center={center}
-            zoom={12}
-            scrollWheelZoom={false}
-            style={{ height: "100%", width: "100%", zIndex: 0 }}
-             className="z-0"
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            />
-            <Marker position={center}>
-                <Popup>
-                    Sample polling area
-                </Popup>
-            </Marker>
-            <LocationMarker />
-          </MapContainer>
+      <MapContainer
+        center={center}
+        zoom={12}
+        scrollWheelZoom={false}
+        style={{ height: "100%", width: "100%", zIndex: 0 }}
+        className="z-0"
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        />
+        <Marker position={center}>
+          <Popup>Sample polling area</Popup>
+        </Marker>
+        <LocationMarker />
+      </MapContainer>
     </div>
   );
 }

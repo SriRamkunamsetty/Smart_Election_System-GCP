@@ -48,7 +48,13 @@ export function GameBoard({ stations, activeId, completed, onSelect }: Props) {
               <motion.button
                 type="button"
                 aria-label={`Station ${idx + 1}: ${s.title}. ${
-                  isDone ? "Completed." : isActive ? "Current step." : isLocked ? "Locked." : "Available."
+                  isDone
+                    ? "Completed."
+                    : isActive
+                      ? "Current step."
+                      : isLocked
+                        ? "Locked."
+                        : "Available."
                 }`}
                 onClick={() => {
                   playTap();
@@ -60,8 +66,8 @@ export function GameBoard({ stations, activeId, completed, onSelect }: Props) {
                   isActive
                     ? { y: [0, -6, 0] }
                     : isDone
-                    ? { rotate: [0, -2, 2, 0] }
-                    : { y: 0, rotate: 0 }
+                      ? { rotate: [0, -2, 2, 0] }
+                      : { y: 0, rotate: 0 }
                 }
                 transition={
                   isActive
@@ -72,8 +78,8 @@ export function GameBoard({ stations, activeId, completed, onSelect }: Props) {
                   isDone
                     ? "bg-india-green/15 text-india-green ring-2 ring-india-green/40"
                     : isActive
-                    ? "bg-primary/12 text-primary ring-2 ring-primary/50"
-                    : "bg-card text-foreground ring-1 ring-border"
+                      ? "bg-primary/12 text-primary ring-2 ring-primary/50"
+                      : "bg-card text-foreground ring-1 ring-border"
                 }`}
               >
                 <span className="text-5xl drop-shadow-sm" aria-hidden>
@@ -96,7 +102,9 @@ export function GameBoard({ stations, activeId, completed, onSelect }: Props) {
                   />
                 )}
               </motion.button>
-              <div className="mt-3 max-w-[10rem] text-xs font-medium text-foreground">{s.title}</div>
+              <div className="mt-3 max-w-[10rem] text-xs font-medium text-foreground">
+                {s.title}
+              </div>
               <div className="mt-0.5 text-[11px] text-muted-foreground">{s.caption}</div>
             </li>
           );

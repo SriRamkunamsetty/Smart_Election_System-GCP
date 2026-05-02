@@ -11,7 +11,12 @@ type Props = {
 };
 
 /** Audio-first button: reads `text` aloud via the browser's speech synthesis. */
-export function SpeakButton({ text, label = "Read this aloud", className = "", size = "md" }: Props) {
+export function SpeakButton({
+  text,
+  label = "Read this aloud",
+  className = "",
+  size = "md",
+}: Props) {
   const [speaking, setSpeaking] = useState(false);
   const [supported, setSupported] = useState(false);
 
@@ -29,8 +34,7 @@ export function SpeakButton({ text, label = "Read this aloud", className = "", s
 
   useEffect(() => () => stopSpeaking(), []);
 
-  const dims =
-    size === "sm" ? "h-9 w-9" : size === "lg" ? "h-14 w-14" : "h-11 w-11";
+  const dims = size === "sm" ? "h-9 w-9" : size === "lg" ? "h-14 w-14" : "h-11 w-11";
   const icon = size === "sm" ? "h-4 w-4" : size === "lg" ? "h-6 w-6" : "h-5 w-5";
 
   if (!supported) return null;

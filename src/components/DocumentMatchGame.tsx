@@ -13,12 +13,48 @@ type Doc = {
 };
 
 const DOCS: Doc[] = [
-  { id: "aadhaar", name: "Aadhaar Card", emoji: "🪪", valid: true, description: "Aadhaar card — accepted as ID proof." },
-  { id: "epic", name: "Voter ID (EPIC)", emoji: "🗳️", valid: true, description: "Your Voter ID card — the gold standard." },
-  { id: "passport", name: "Passport", emoji: "📘", valid: true, description: "Indian passport — accepted." },
-  { id: "driving", name: "Driving Licence", emoji: "🚗", valid: true, description: "Driving licence — accepted." },
-  { id: "library", name: "Library Card", emoji: "📚", valid: false, description: "Library card — not an accepted ID." },
-  { id: "shopping", name: "Shopping Card", emoji: "🛍️", valid: false, description: "Loyalty card — not an accepted ID." },
+  {
+    id: "aadhaar",
+    name: "Aadhaar Card",
+    emoji: "🪪",
+    valid: true,
+    description: "Aadhaar card — accepted as ID proof.",
+  },
+  {
+    id: "epic",
+    name: "Voter ID (EPIC)",
+    emoji: "🗳️",
+    valid: true,
+    description: "Your Voter ID card — the gold standard.",
+  },
+  {
+    id: "passport",
+    name: "Passport",
+    emoji: "📘",
+    valid: true,
+    description: "Indian passport — accepted.",
+  },
+  {
+    id: "driving",
+    name: "Driving Licence",
+    emoji: "🚗",
+    valid: true,
+    description: "Driving licence — accepted.",
+  },
+  {
+    id: "library",
+    name: "Library Card",
+    emoji: "📚",
+    valid: false,
+    description: "Library card — not an accepted ID.",
+  },
+  {
+    id: "shopping",
+    name: "Shopping Card",
+    emoji: "🛍️",
+    valid: false,
+    description: "Loyalty card — not an accepted ID.",
+  },
 ];
 
 type Status = "ready" | "win" | "lose";
@@ -29,7 +65,10 @@ export function DocumentMatchGame() {
   const [feedbackDocId, setFeedbackDocId] = useState<string | null>(null);
   const boxRef = useRef<HTMLDivElement | null>(null);
 
-  const matched = useMemo(() => items.filter((d) => d.valid === false || d.id === "matched"), [items]);
+  const matched = useMemo(
+    () => items.filter((d) => d.valid === false || d.id === "matched"),
+    [items],
+  );
 
   function reset() {
     setItems(shuffle(DOCS));
@@ -65,7 +104,9 @@ export function DocumentMatchGame() {
     <div>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="font-display text-lg font-semibold text-foreground">Is it me? — Document game</h3>
+          <h3 className="font-display text-lg font-semibold text-foreground">
+            Is it me? — Document game
+          </h3>
           <p className="mt-1 text-sm text-muted-foreground">Drag the right card into the box.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -88,8 +129,8 @@ export function DocumentMatchGame() {
             status === "win"
               ? { scale: [1, 1.06, 1], borderColor: "var(--color-india-green)" }
               : status === "lose"
-              ? { x: [0, -10, 10, -8, 8, 0], borderColor: "var(--color-destructive)" }
-              : { scale: 1, borderColor: "var(--color-border)" }
+                ? { x: [0, -10, 10, -8, 8, 0], borderColor: "var(--color-destructive)" }
+                : { scale: 1, borderColor: "var(--color-border)" }
           }
           transition={{ duration: status === "ready" ? 0.3 : 0.5 }}
           className="relative grid h-44 w-72 place-items-center rounded-3xl border-2 border-dashed bg-card/60 backdrop-blur"
@@ -186,8 +227,8 @@ function DraggableDoc({
         feedback === "win"
           ? { scale: [1, 1.08, 1], rotate: [0, 4, -4, 0] }
           : feedback === "lose"
-          ? { x: [0, -8, 8, -6, 6, 0] }
-          : { scale: 1, rotate: 0, x: 0 }
+            ? { x: [0, -8, 8, -6, 6, 0] }
+            : { scale: 1, rotate: 0, x: 0 }
       }
       onDragStart={() => setGrabbing(true)}
       onDragEnd={(_, info) => {

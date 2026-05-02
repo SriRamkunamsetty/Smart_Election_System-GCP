@@ -80,10 +80,20 @@ export function EvmPractice() {
                     whileTap={{ scale: 0.85 }}
                     animate={
                       isPicked
-                        ? { boxShadow: ["0 0 0 0 rgba(26,115,232,0.6)", "0 0 0 18px rgba(26,115,232,0)"] }
+                        ? {
+                            boxShadow: [
+                              "0 0 0 0 rgba(26,115,232,0.6)",
+                              "0 0 0 18px rgba(26,115,232,0)",
+                            ],
+                          }
                         : phase === "choose"
-                        ? { boxShadow: ["0 0 0 0 rgba(26,115,232,0.4)", "0 0 0 10px rgba(26,115,232,0)"] }
-                        : { boxShadow: "0 0 0 0 rgba(26,115,232,0)" }
+                          ? {
+                              boxShadow: [
+                                "0 0 0 0 rgba(26,115,232,0.4)",
+                                "0 0 0 10px rgba(26,115,232,0)",
+                              ],
+                            }
+                          : { boxShadow: "0 0 0 0 rgba(26,115,232,0)" }
                     }
                     transition={{ duration: 1.3, repeat: phase === "choose" ? Infinity : 0 }}
                     className="focusable h-9 w-9 rounded-full bg-primary text-primary-foreground luminescent disabled:opacity-50"
@@ -108,7 +118,9 @@ export function EvmPractice() {
               aria-live="polite"
               className="mx-auto max-w-sm rounded-2xl border border-dashed border-foreground/30 bg-yellow-50 px-4 py-3 text-center font-mono text-sm shadow-inner"
             >
-              <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">VVPAT slip</div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                VVPAT slip
+              </div>
               <div className="mt-1 text-3xl">{picked.symbol}</div>
               <div className="mt-0.5 text-foreground">{picked.name}</div>
               <div className="mt-1 text-[10px] text-muted-foreground">Visible for 7 seconds</div>
@@ -141,9 +153,7 @@ export function EvmPractice() {
                   style={{ background: "oklch(0.42 0.18 290)" }}
                 />
               </motion.div>
-              <div className="text-base font-semibold text-foreground">
-                You have voted! 🎉
-              </div>
+              <div className="text-base font-semibold text-foreground">You have voted! 🎉</div>
               <div className="text-xs text-muted-foreground">
                 The ink mark stays for several days — it is your proof.
               </div>

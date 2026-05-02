@@ -39,7 +39,13 @@ export function IdPhotoCheck() {
       else playFailure();
     } catch (e) {
       console.error(e);
-      setResult({ ok: false, doc: "unknown", reason: "Could not check the photo.", tips: [], confidence: 0 });
+      setResult({
+        ok: false,
+        doc: "unknown",
+        reason: "Could not check the photo.",
+        tips: [],
+        confidence: 0,
+      });
       playFailure();
     } finally {
       setBusy(false);

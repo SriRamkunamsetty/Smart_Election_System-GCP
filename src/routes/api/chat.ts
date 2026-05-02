@@ -36,10 +36,10 @@ export const Route = createFileRoute("/api/chat")({
       POST: async ({ request }) => {
         const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
         if (!key) {
-          return new Response(
-            JSON.stringify({ error: "AI is not configured." }),
-            { status: 500, headers: { "Content-Type": "application/json" } },
-          );
+          return new Response(JSON.stringify({ error: "AI is not configured." }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
         }
 
         let parsed;
@@ -54,46 +54,67 @@ export const Route = createFileRoute("/api/chat")({
         }
 
         try {
-            const ai = new GoogleGenAI({ apiKey: key });
-            const dynamicSystemInstruction = parsed.context 
-              ? `${SYSTEM_PROMPT}\n\nUser Context:\n${parsed.context}`
-              : SYSTEM_PROMPT;
+          const ai = new GoogleGenAI({ apiKey: key });
+          const dynamicSystemInstruction = parsed.context
+            ? `${SYSTEM_PROMPT}\n\nUser Context:\n${parsed.context}`
+            : SYSTEM_PROMPT;
 
-            const stream = await ai.models.generateContentStream({
-                model: "gemini-2.5-flash",
-                config: { systemInstruction: dynamicSystemInstruction },
-                contents: parsed.messages.map(m => ({
-                    role: m.role === "assistant" ? "model" : "user",
-                    parts: [{ text: m.content }]
-                }))
-            });
+          const stream = await ai.models.generateContentStream({
+            model: "gemini-2.5-flash",
+            config: { systemInstruction: dynamicSystemInstruction },
+            contents: parsed.messages.map((m) => ({
+              role: m.role === "assistant" ? "model" : "user",
+              parts: [{ text: m.content }],
+            })),
+          });
 
-            const readable = new ReadableStream({
-                async start(controller) {
-                    for await (const chunk of stream) {
-                        const payload = JSON.stringify({
-                            choices: [{ delta: { content: chunk.text } }]
-                        });
-                        controller.enqueue(new TextEncoder().encode(`data: ${payload}\n\n`));
-                    }
-                    controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
-                    controller.close();
+          const readable = new ReadableStream({
+            async start(controller) {
+              try {
+                for await (const chunk of stream) {
+                  if (request.signal.aborted) {
+                    break;
+                  }
+                  const payload = JSON.stringify({
+                    choices: [{ delta: { content: chunk.text } }],
+                  });
+                  controller.enqueue(new TextEncoder().encode(`data: ${payload}\n\n`));
                 }
-            });
+                if (!request.signal.aborted) {
+                  controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
+                }
+              } catch (e: unknown) {
+                const isAbort = e instanceof Error && e.name === "AbortError";
+                if (!isAbort && !request.signal.aborted) {
+                  console.error("Stream generation error", e);
+                  try {
+                    controller.enqueue(
+                      new TextEncoder().encode(
+                        `data: ${JSON.stringify({ error: "Stream error" })}\n\n`,
+                      ),
+                    );
+                  } catch (err) {
+                    // Ignore enqueue errors.
+                  }
+                }
+              } finally {
+                controller.close();
+              }
+            },
+          });
 
-            return new Response(readable, {
-                headers: {
-                    "Content-Type": "text/event-stream",
-                    "Cache-Control": "no-cache, no-transform",
-                },
-            });
-
+          return new Response(readable, {
+            headers: {
+              "Content-Type": "text/event-stream",
+              "Cache-Control": "no-cache, no-transform",
+            },
+          });
         } catch (e) {
-            console.error("AI upstream error", e);
-            return new Response(JSON.stringify({ error: "AI gateway error." }), {
-                status: 500,
-                headers: { "Content-Type": "application/json" },
-            });
+          console.error("AI upstream error", e);
+          return new Response(JSON.stringify({ error: "AI gateway error." }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
         }
       },
     },

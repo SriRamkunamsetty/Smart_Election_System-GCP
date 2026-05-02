@@ -66,11 +66,4 @@ export const STEPS: Step[] = [
 ];
 
 // Illustrative election date — replace with live ECI data when wiring real sources.
-export const NEXT_ELECTION_DATE = new Date(
-  new Date().getFullYear() + 1,
-  3,
-  19,
-  7,
-  0,
-  0,
-);
+export const NEXT_ELECTION_DATE = new Date(new Date().getFullYear() + 1, 3, 19, 7, 0, 0);

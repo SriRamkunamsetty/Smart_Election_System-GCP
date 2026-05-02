@@ -124,6 +124,7 @@ export const Route = createFileRoute("/api/chat")({
               "Cache-Control": "no-cache, no-transform",
             },
           });
+        } catch (e: unknown) {
           const errStr = String(e);
           if (errStr.includes("API key not valid")) {
             return new Response(

@@ -38,13 +38,16 @@ Give the Indian voter clear, practical, up-to-date guidance for this step: what 
     try {
       const ai = new GoogleGenAI({ apiKey: key });
       const res = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3-flash-preview",
         config: { systemInstruction: SYSTEM },
         contents: userPrompt,
       });
       const content = res.text?.trim() ?? "";
       return { content, error: null as string | null };
-    } catch (e) {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.message.includes("API key not valid")) {
+        return { content: "", error: "AI is not configured. Please check your API key." };
+      }
       console.error("step-details exception", e);
       return { content: "", error: "Could not reach the Oracle." };
     }

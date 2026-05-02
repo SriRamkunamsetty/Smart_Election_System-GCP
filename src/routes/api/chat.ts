@@ -75,7 +75,7 @@ export const Route = createFileRoute("/api/chat")({
             : SYSTEM_PROMPT;
 
           const stream = await ai.models.generateContentStream({
-            model: "gemini-1.5-flash",
+            model: "gemini-3.1-flash-lite-preview",
             config: { systemInstruction: dynamicSystemInstruction },
             contents: parsed.messages.map((m) => ({
               role: m.role === "assistant" ? "model" : "user",

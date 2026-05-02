@@ -60,7 +60,7 @@ export async function visionHandler({ data }: { data: z.infer<typeof Input> }) {
     try {
       const ai = new GoogleGenAI({ apiKey: key });
       const res = await ai.models.generateContent({
-        model: "gemini-3.1-flash-lite-preview",
+        model: "gemini-1.5-flash",
         config: {
           systemInstruction: SYSTEM,
           responseMimeType: "application/json",
@@ -111,7 +111,8 @@ export async function visionHandler({ data }: { data: z.infer<typeof Input> }) {
         error: null as string | null,
       };
     } catch (e: unknown) {
-      if (e instanceof Error && e.message.includes("API key not valid")) {
+      const errStr = String(e);
+      if (errStr.includes("API key not valid")) {
         return {
           ok: false,
           doc: "unknown" as const,
@@ -121,7 +122,17 @@ export async function visionHandler({ data }: { data: z.infer<typeof Input> }) {
           error: "no_key",
         };
       }
-      logger.error("vision exception", { component: "vision", error: String(e) });
+      if (errStr.includes("SERVICE_DISABLED") || errStr.includes("disabled")) {
+        return {
+          ok: false,
+          doc: "unknown" as const,
+          confidence: 0,
+          reason: "Gemini API is disabled. Please enable it in Google Cloud Console.",
+          tips: [],
+          error: "service_disabled",
+        };
+      }
+      logger.error("vision exception", { component: "vision", error: errStr });
       return {
         ok: false,
         doc: "unknown" as const,

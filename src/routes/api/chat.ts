@@ -75,7 +75,7 @@ export const Route = createFileRoute("/api/chat")({
             : SYSTEM_PROMPT;
 
           const stream = await ai.models.generateContentStream({
-            model: "gemini-3.1-flash-lite-preview",
+            model: "gemini-1.5-flash",
             config: { systemInstruction: dynamicSystemInstruction },
             contents: parsed.messages.map((m) => ({
               role: m.role === "assistant" ? "model" : "user",
@@ -124,8 +124,8 @@ export const Route = createFileRoute("/api/chat")({
               "Cache-Control": "no-cache, no-transform",
             },
           });
-        } catch (e: unknown) {
-          if (e instanceof Error && e.message.includes("API key not valid")) {
+          const errStr = String(e);
+          if (errStr.includes("API key not valid")) {
             return new Response(
               JSON.stringify({ error: "AI is not configured. Please check your API key." }),
               {
@@ -134,7 +134,16 @@ export const Route = createFileRoute("/api/chat")({
               },
             );
           }
-          logger.error("AI upstream error", { component: "chat", error: String(e) });
+          if (errStr.includes("SERVICE_DISABLED") || errStr.includes("disabled")) {
+            return new Response(
+              JSON.stringify({ error: "Gemini API is disabled. Please enable it in GCP Console." }),
+              {
+                status: 403,
+                headers: { "Content-Type": "application/json" },
+              },
+            );
+          }
+          logger.error("AI upstream error", { component: "chat", error: errStr });
           return new Response(JSON.stringify({ error: "AI gateway error." }), {
             status: 500,
             headers: { "Content-Type": "application/json" },

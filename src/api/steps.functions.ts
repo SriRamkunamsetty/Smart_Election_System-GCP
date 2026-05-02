@@ -51,20 +51,24 @@ Give the Indian voter clear, practical, up-to-date guidance for this step: what 
     try {
       const ai = new GoogleGenAI({ apiKey: key });
       const res = await ai.models.generateContent({
-        model: "gemini-3.1-flash-lite-preview",
+        model: "gemini-1.5-flash",
         config: { systemInstruction: SYSTEM },
         contents: userPrompt,
       });
       const content = res.text?.trim() ?? "";
       return { content, error: null as string | null };
     } catch (e: unknown) {
-      if (e instanceof Error && e.message.includes("API key not valid")) {
+      const errStr = String(e);
+      if (errStr.includes("API key not valid")) {
         return { content: "", error: "AI is not configured. Please check your API key." };
+      }
+      if (errStr.includes("SERVICE_DISABLED") || errStr.includes("disabled")) {
+        return { content: "", error: "Gemini API is disabled. Please enable it in Google Cloud Console." };
       }
       logger.error("step-details exception", {
         component: "steps",
         stepId: data.stepId,
-        error: String(e),
+        error: errStr,
       });
       return { content: "", error: "Could not reach the Oracle." };
     }

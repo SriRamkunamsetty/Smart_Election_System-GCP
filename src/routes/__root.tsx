@@ -8,8 +8,8 @@ import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/r
 
 import appCss from "../styles.css?url";
 
-/** Google Analytics Measurement ID — set VITE_GA_MEASUREMENT_ID in .env for production tracking. */
-const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || "G-XXXXXXXXXX";
+/** Google Analytics Measurement ID */
+const GA_MEASUREMENT_ID = "G-4C663B9997";
 
 function NotFoundComponent() {
   return (

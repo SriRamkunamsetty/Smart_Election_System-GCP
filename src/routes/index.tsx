@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Accessibility,
@@ -20,6 +20,13 @@ import { Timeline } from "@/components/Timeline";
 import { useProgress } from "@/hooks/useProgress";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import { NEXT_ELECTION_DATE, STEPS } from "@/lib/election-data";
+import {
+  trackModeSwitch,
+  trackStepCompleted,
+  trackStepExpanded,
+  trackProgressMilestone,
+  trackHighContrast,
+} from "@/lib/analytics";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -55,12 +62,24 @@ function Index() {
     setHighContrast((v) => {
       const next = !v;
       document.documentElement.classList.toggle("contrast-high", next);
+      trackHighContrast(next);
       return next;
     });
   }, []);
 
   const nextStep = STEPS.find((s) => s.id === progress.nextStepId) ?? STEPS[STEPS.length - 1];
   const allDone = progress.done === progress.total;
+
+  /* Track progress milestones (25%, 50%, 75%, 100%) */
+  const prevMilestoneRef = useRef(0);
+  useEffect(() => {
+    const pct = Math.floor(progress.ratio * 100);
+    const milestone = pct >= 100 ? 100 : pct >= 75 ? 75 : pct >= 50 ? 50 : pct >= 25 ? 25 : 0;
+    if (milestone > 0 && milestone > prevMilestoneRef.current) {
+      prevMilestoneRef.current = milestone;
+      trackProgressMilestone(milestone);
+    }
+  }, [progress.ratio]);
 
   const handleStartNext = useCallback(() => {
     if (!nextStep) return;
@@ -90,7 +109,10 @@ function Index() {
         onToggleContrast={toggleContrast}
         highContrast={highContrast}
         mode={mode}
-        onModeChange={setMode}
+        onModeChange={(m) => {
+          setMode(m);
+          trackModeSwitch(m);
+        }}
       />
 
       {sessionNotice && (
@@ -202,8 +224,17 @@ function Index() {
                 completed={progress.completed}
                 activeId={progress.nextStepId}
                 expandedId={expanded}
-                onToggleComplete={progress.toggle}
-                onExpand={setExpanded}
+                onToggleComplete={(id) => {
+                  progress.toggle(id);
+                  const step = STEPS.find((s) => s.id === id);
+                  if (step && !progress.completed.has(id)) {
+                    trackStepCompleted(id, step.title);
+                  }
+                }}
+                onExpand={(id) => {
+                  setExpanded(id);
+                  if (id) trackStepExpanded(id);
+                }}
               />
             </BentoCard>
 

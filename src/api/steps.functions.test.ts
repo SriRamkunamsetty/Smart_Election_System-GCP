@@ -54,6 +54,6 @@ describe("steps server function", () => {
 
     const result = await stepsHandler({ data: { stepId: "eligibility", stepTitle: "Eligibility" } });
     
-    expect(result.error).toBe("Could not reach the Oracle.");
+    expect(result.error).toBe("Could not reach the Oracle. Check server logs.");
   });
 });

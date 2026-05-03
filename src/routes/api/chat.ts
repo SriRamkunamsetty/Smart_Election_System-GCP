@@ -1,17 +1,34 @@
 /**
  * @module api/chat
  * Server-side streaming chat endpoint for "The Voting Oracle" AI assistant.
- * Uses Google Gemini API with Server-Sent Events (SSE) for real-time streaming.
+ * Uses Google Gemini 2.0 Flash API with Server-Sent Events (SSE) for real-time streaming.
  *
  * Security:
  *  - API key is validated and never exposed to the client.
  *  - Request body is validated via Zod schemas with strict limits.
  *  - Message content is capped at 4000 chars, history at 40 messages.
+ *  - In-memory rate limiting (20 req/min per IP) prevents abuse.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { GoogleGenAI } from "@google/genai";
 import * as logger from "@/lib/logger";
+
+/* ── Rate limiter ───────────────────────────────────────────────── */
+const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60_000;
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const bucket = rateBuckets.get(ip);
+  if (!bucket || now > bucket.resetAt) {
+    rateBuckets.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return false;
+  }
+  bucket.count++;
+  return bucket.count > RATE_LIMIT;
+}
 
 const SYSTEM_PROMPT = `You are "The Voting Oracle", a friendly, neutral, non-partisan assistant that helps Indian citizens understand the election process.
 
@@ -45,6 +62,16 @@ export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        /* ── Rate limit check ── */
+        const forwarded = request.headers.get("x-forwarded-for");
+        const clientIp = forwarded?.split(",")[0]?.trim() || "unknown";
+        if (isRateLimited(clientIp)) {
+          return new Response(
+            JSON.stringify({ error: "Too many requests. Please wait a moment and try again." }),
+            { status: 429, headers: { "Content-Type": "application/json", "Retry-After": "60" } },
+          );
+        }
+
         const rawKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
         const key = rawKey?.trim();
         if (!key || key === "undefined" || key === "null" || key.length < 10) {
@@ -75,7 +102,7 @@ export const Route = createFileRoute("/api/chat")({
             : SYSTEM_PROMPT;
 
           const stream = await ai.models.generateContentStream({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.0-flash",
             config: { systemInstruction: dynamicSystemInstruction },
             contents: parsed.messages.map((m) => ({
               role: m.role === "assistant" ? "model" : "user",
@@ -126,38 +153,47 @@ export const Route = createFileRoute("/api/chat")({
           });
         } catch (e: unknown) {
           const errStr = String(e);
-          if (errStr.includes("API key not valid")) {
+          if (errStr.includes("API key not valid") || errStr.includes("UNAUTHENTICATED")) {
             return new Response(
               JSON.stringify({ error: "AI is not configured. Please check your API key." }),
-              {
-                status: 400,
-                headers: { "Content-Type": "application/json" },
-              },
+              { status: 400, headers: { "Content-Type": "application/json" } },
             );
           }
           if (errStr.includes("SERVICE_DISABLED") || errStr.includes("disabled")) {
             return new Response(
               JSON.stringify({ error: "Gemini API is disabled. Please enable it in GCP Console." }),
-              {
-                status: 403,
-                headers: { "Content-Type": "application/json" },
-              },
+              { status: 403, headers: { "Content-Type": "application/json" } },
             );
           }
           if (errStr.includes("API_KEY_HTTP_REFERRER_BLOCKED")) {
             return new Response(
               JSON.stringify({ error: "API Key restricted by referrer. Remove HTTP Referrer restrictions in GCP Console." }),
-              {
-                status: 403,
-                headers: { "Content-Type": "application/json" },
-              },
+              { status: 403, headers: { "Content-Type": "application/json" } },
+            );
+          }
+          if (errStr.includes("RESOURCE_EXHAUSTED") || errStr.includes("quota")) {
+            return new Response(
+              JSON.stringify({ error: "AI quota exhausted. Please try again later." }),
+              { status: 429, headers: { "Content-Type": "application/json" } },
+            );
+          }
+          if (errStr.includes("NOT_FOUND") || errStr.includes("not found")) {
+            return new Response(
+              JSON.stringify({ error: "AI model not available. Please check your Google Cloud project setup." }),
+              { status: 404, headers: { "Content-Type": "application/json" } },
+            );
+          }
+          if (errStr.includes("PERMISSION_DENIED")) {
+            return new Response(
+              JSON.stringify({ error: "Permission denied. Enable the Generative Language API in GCP Console." }),
+              { status: 403, headers: { "Content-Type": "application/json" } },
             );
           }
           logger.error("AI upstream error", { component: "chat", error: errStr });
-          return new Response(JSON.stringify({ error: "AI gateway error." }), {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-          });
+          return new Response(
+            JSON.stringify({ error: "AI gateway error. Please check server logs for details." }),
+            { status: 500, headers: { "Content-Type": "application/json" } },
+          );
         }
       },
     },

@@ -3,6 +3,7 @@ import { MessageCircle, Send, Sparkles, X } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { SpeakButton } from "@/components/SpeakButton";
+import { trackAiQuery } from "@/lib/analytics";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -105,6 +106,7 @@ function ChatBubbleImpl({ context }: { context?: ChatContext }) {
       setMessages(next);
       setInput("");
       setBusy(true);
+      trackAiQuery(context?.mode);
 
       stopStreaming();
       const ac = new AbortController();
@@ -269,11 +271,7 @@ function ChatBubbleImpl({ context }: { context?: ChatContext }) {
                             {m.content || "…"}
                           </ReactMarkdown>
                         </div>
-                        {m.content && !busy && i === messages.length - 1 ? (
-                          <div className="absolute top-0 right-0 -mr-2 -mt-1">
-                            <SpeakButton text={m.content} size="sm" label="Read aloud" />
-                          </div>
-                        ) : m.content && i !== messages.length - 1 ? (
+                        {m.content && (!busy || i !== messages.length - 1) ? (
                           <div className="absolute top-0 right-0 -mr-2 -mt-1">
                             <SpeakButton text={m.content} size="sm" label="Read aloud" />
                           </div>

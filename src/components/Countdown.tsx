@@ -1,3 +1,9 @@
+/**
+ * @module Countdown
+ * Real-time countdown timer to the next election date.
+ * Displays days, hours, minutes, and seconds with SSR-safe hydration
+ * (renders "00" until mounted to prevent mismatch).
+ */
 import { useEffect, useState } from "react";
 
 interface Props {
@@ -31,7 +37,10 @@ export function Countdown({ date }: Props) {
   }, [date]);
 
   const Tile = ({ value, label }: { value: number; label: string }) => (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card/40 p-3">
+    <div
+      className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card/40 p-3"
+      aria-label={`${mounted ? value : 0} ${label}`}
+    >
       <div className="font-display text-2xl font-semibold tabular-nums tracking-tight text-foreground sm:text-3xl">
         {mounted ? String(value).padStart(2, "0") : "00"}
       </div>

@@ -1,3 +1,10 @@
+/**
+ * @module IdPhotoCheck
+ * AI-powered identity document verification using Google Gemini Vision.
+ * Users upload a photo of their ID card; the Oracle checks if it appears
+ * to be a valid polling-day document (Aadhaar, Voter ID, Passport, Driving Licence).
+ * No personal data (numbers, addresses) is stored or echoed back.
+ */
 import { motion } from "framer-motion";
 import { useRef, useState } from "react";
 import { Camera, Loader2, RefreshCw } from "lucide-react";

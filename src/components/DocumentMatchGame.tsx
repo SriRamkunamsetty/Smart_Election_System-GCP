@@ -1,3 +1,10 @@
+/**
+ * @module DocumentMatchGame
+ * Interactive drag-and-drop game that teaches voters which identity documents
+ * are accepted at Indian polling stations. Valid IDs (Aadhaar, EPIC, Passport,
+ * Driving Licence) are accepted; non-valid ones (Library Card, Shopping Card) are rejected.
+ * Supports both drag-and-drop and click-to-drop for accessibility.
+ */
 import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { useMemo, useRef, useState } from "react";
 import { Check, X, RotateCcw } from "lucide-react";

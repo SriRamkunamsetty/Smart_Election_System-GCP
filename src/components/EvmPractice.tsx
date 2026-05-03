@@ -1,3 +1,9 @@
+/**
+ * @module EvmPractice
+ * Simulated Electronic Voting Machine (EVM) that lets voters practice
+ * the voting process without casting a real vote. Demonstrates the full
+ * flow: candidate selection → VVPAT slip display → indelible ink mark.
+ */
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { RotateCcw } from "lucide-react";

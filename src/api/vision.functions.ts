@@ -42,114 +42,124 @@ export const checkIdPhoto = createServerFn({ method: "POST" })
 /** Core logic for checkIdPhoto, separated for testing. */
 export async function visionHandler({ data }: { data: z.infer<typeof Input> }) {
   const rawKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY;
-    const key = rawKey?.trim();
-    if (!key || key === "undefined" || key === "null" || key.length < 10) {
+  const key = rawKey?.trim();
+  if (!key || key === "undefined" || key === "null" || key.length < 10) {
+    return {
+      ok: false,
+      doc: "unknown" as const,
+      confidence: 0,
+      reason: "AI is not configured.",
+      tips: [],
+      error: "no_key",
+    };
+  }
+
+  const { image, docHint } = data;
+  const base64Str = image.startsWith("data:") ? image.split(",")[1] : image;
+
+  try {
+    const ai = new GoogleGenAI({ apiKey: key });
+    const res = await ai.models.generateContent({
+      model: "gemini-2.0-flash",
+      config: {
+        systemInstruction: SYSTEM,
+        responseMimeType: "application/json",
+      },
+      contents: [
+        {
+          text: `User said the document is: ${docHint}. Judge the photo and reply with JSON only.`,
+        },
+        { inlineData: { mimeType: "image/jpeg", data: base64Str } },
+      ],
+    });
+
+    const cleaned = res.text?.trim() ?? "{}";
+    let parsed: {
+      ok?: boolean;
+      doc?: string;
+      confidence?: number;
+      reason?: string;
+      tips?: string[];
+    } = {};
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      parsed = {};
+    }
+
+    const allowedDocs = [
+      "aadhaar",
+      "voter_id",
+      "passport",
+      "driving_licence",
+      "pan",
+      "unknown",
+    ] as const;
+    const docVal = (allowedDocs as readonly string[]).includes(parsed.doc ?? "")
+      ? (parsed.doc as (typeof allowedDocs)[number])
+      : "unknown";
+
+    return {
+      ok: !!parsed.ok,
+      doc: docVal,
+      confidence:
+        typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0,
+      reason:
+        parsed.reason ||
+        (parsed.ok ? "Looks like a valid ID." : "Could not verify the document."),
+      tips: Array.isArray(parsed.tips) ? parsed.tips.slice(0, 3).map(String) : [],
+      error: null as string | null,
+    };
+  } catch (e: unknown) {
+    const errStr = String(e);
+    if (errStr.includes("API key not valid") || errStr.includes("UNAUTHENTICATED")) {
       return {
         ok: false,
         doc: "unknown" as const,
         confidence: 0,
-        reason: "AI is not configured.",
+        reason: "AI is not configured. Please check your API key.",
         tips: [],
         error: "no_key",
       };
     }
-
-    const { image, docHint } = data;
-    const base64Str = image.startsWith("data:") ? image.split(",")[1] : image;
-
-    try {
-      const ai = new GoogleGenAI({ apiKey: key });
-      const res = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        config: {
-          systemInstruction: SYSTEM,
-          responseMimeType: "application/json",
-        },
-        contents: [
-          {
-            text: `User said the document is: ${docHint}. Judge the photo and reply with JSON only.`,
-          },
-          { inlineData: { mimeType: "image/jpeg", data: base64Str } },
-        ],
-      });
-
-      const cleaned = res.text?.trim() ?? "{}";
-      let parsed: {
-        ok?: boolean;
-        doc?: string;
-        confidence?: number;
-        reason?: string;
-        tips?: string[];
-      } = {};
-      try {
-        parsed = JSON.parse(cleaned);
-      } catch {
-        parsed = {};
-      }
-
-      const allowedDocs = [
-        "aadhaar",
-        "voter_id",
-        "passport",
-        "driving_licence",
-        "pan",
-        "unknown",
-      ] as const;
-      const docVal = (allowedDocs as readonly string[]).includes(parsed.doc ?? "")
-        ? (parsed.doc as (typeof allowedDocs)[number])
-        : "unknown";
-
-      return {
-        ok: !!parsed.ok,
-        doc: docVal,
-        confidence:
-          typeof parsed.confidence === "number" ? Math.max(0, Math.min(1, parsed.confidence)) : 0,
-        reason:
-          parsed.reason ||
-          (parsed.ok ? "Looks like a valid ID." : "Could not verify the document."),
-        tips: Array.isArray(parsed.tips) ? parsed.tips.slice(0, 3).map(String) : [],
-        error: null as string | null,
-      };
-    } catch (e: unknown) {
-      const errStr = String(e);
-      if (errStr.includes("API key not valid")) {
-        return {
-          ok: false,
-          doc: "unknown" as const,
-          confidence: 0,
-          reason: "AI is not configured. Please check your API key.",
-          tips: [],
-          error: "no_key",
-        };
-      }
-      if (errStr.includes("SERVICE_DISABLED") || errStr.includes("disabled")) {
-        return {
-          ok: false,
-          doc: "unknown" as const,
-          confidence: 0,
-          reason: "Gemini API is disabled. Please enable it in Google Cloud Console.",
-          tips: [],
-          error: "service_disabled",
-        };
-      }
-      if (errStr.includes("API_KEY_HTTP_REFERRER_BLOCKED")) {
-        return {
-          ok: false,
-          doc: "unknown" as const,
-          confidence: 0,
-          reason: "API Key is restricted by referrer. Please remove HTTP Referrer restrictions in GCP Console.",
-          tips: ["Go to APIs & Services > Credentials", "Select your API Key", "Set 'Website restrictions' to 'None'"],
-          error: "key_restricted",
-        };
-      }
-      logger.error("vision exception", { component: "vision", error: errStr });
+    if (errStr.includes("SERVICE_DISABLED") || errStr.includes("disabled")) {
       return {
         ok: false,
         doc: "unknown" as const,
         confidence: 0,
-        reason: "Could not reach the Oracle.",
+        reason: "Gemini API is disabled. Please enable it in Google Cloud Console.",
         tips: [],
-        error: "network",
+        error: "service_disabled",
       };
     }
+    if (errStr.includes("API_KEY_HTTP_REFERRER_BLOCKED")) {
+      return {
+        ok: false,
+        doc: "unknown" as const,
+        confidence: 0,
+        reason: "API Key is restricted by referrer. Please remove HTTP Referrer restrictions in GCP Console.",
+        tips: ["Go to APIs & Services > Credentials", "Select your API Key", "Set 'Website restrictions' to 'None'"],
+        error: "key_restricted",
+      };
+    }
+    if (errStr.includes("PERMISSION_DENIED")) {
+      return {
+        ok: false,
+        doc: "unknown" as const,
+        confidence: 0,
+        reason: "Permission denied. Enable the Generative Language API in GCP Console.",
+        tips: [],
+        error: "permission_denied",
+      };
+    }
+    logger.error("vision exception", { component: "vision", error: errStr });
+    return {
+      ok: false,
+      doc: "unknown" as const,
+      confidence: 0,
+      reason: "Could not reach the Oracle.",
+      tips: [],
+      error: "network",
+    };
   }
+}

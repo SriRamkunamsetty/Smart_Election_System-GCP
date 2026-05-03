@@ -41,7 +41,26 @@ This platform serves as a unified digital mentor for first-time voters and citiz
 
 ---
 
-## 2. Problem Statement
+## 2. Submission Details & Criteria
+
+- **Chosen Vertical:** Civic Tech / EdTech
+- **Target Audience:** First-time voters and citizens looking to understand the Indian electoral process.
+
+### Approach and Logic
+The platform's core logic is to lower the barrier to civic participation by transforming dense, intimidating bureaucratic rules into a progressive, interactive experience. We approached this by mapping out the entire voting lifecycle (from eligibility to the polling booth) and creating visual, gamified milestones. For dynamic edge cases, we integrated an AI Oracle (Gemini 2.0 Flash) that provides context-aware, non-partisan guidance without storing PII.
+
+### How the Solution Works
+The application uses a TanStack Start (React 18) frontend integrated with Node.js edge handlers. The UI uses gamified elements (like the Document Match drag-and-drop game and EVM Simulator) to teach concepts safely. When a user queries the Voting Oracle, the UI state (their current step) is injected into the AI prompt securely on the server-side (`/api/chat`), which then streams back instructions via Server-Sent Events (SSE). We utilize the native Web Speech API for TTS and Google Maps SDK for polling location visualization. Real-time behavior is tracked using Google Analytics 4 (GA4).
+
+### Assumptions Made
+1. **Target Region:** The terminology and simulations (EVM, Aadhaar/EPIC documents, VVPAT) assume the context of the Indian Electoral System.
+2. **Browser Capabilities:** Assumes users are on modern browsers that support Web Speech API for TTS and CSS Grid/Flexbox.
+3. **Accessibility Needs:** We assume users may have varying degrees of technical literacy and vision capabilities, hence the inclusion of high-contrast modes and global screen-reader compliance.
+4. **Internet Connectivity:** Assumes users have an active internet connection to communicate with the Gemini AI endpoints and Google Maps.
+
+---
+
+## 3. Problem Statement
 
 Participating in the democratic process can be incredibly daunting for new voters:
 
@@ -52,7 +71,7 @@ Participating in the democratic process can be incredibly daunting for new voter
 
 ---
 
-## 3. Solution
+## 4. Solution
 
 We solve this through a **progressive, AI-assisted learning platform**:
 
